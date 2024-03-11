@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const { model, Schema } = mongoose;
 
-let userSchema = Schema(
+let usersSchema = Schema(
   {
     name: {
       type: String,
@@ -34,7 +34,7 @@ let userSchema = Schema(
   { timestamps: true }
 );
 
-userSchema.pre("save", async function (next) {
+usersSchema.pre("save", async function (next) {
   const user = this;
   if (user.isModified("password")) {
     // jika user isinya password
@@ -43,9 +43,9 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
-userSchema.methods.comparePassword = async function (candidatePassword) {
+usersSchema.methods.comparePassword = async function (candidatePassword) {
   const isMatch = await bcrypt.compare(candidatePassword, this.password);
   return isMatch;
 };
 
-module.exports = model("User", userSchema);
+module.exports = model("User", usersSchema);

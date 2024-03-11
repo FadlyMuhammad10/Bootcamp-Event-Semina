@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const { model, Schema } = mongoose;
 
-let organizerSchema = Schema(
+let organizersSchema = Schema(
   {
     organizer: {
       type: String,
@@ -11,4 +11,4 @@ let organizerSchema = Schema(
   { timestamps: true }
 );
 
-module.exports = model("Organizer", organizerSchema);
+module.exports = model("Organizer", organizersSchema);
