@@ -1,7 +1,10 @@
 const express = require("express");
 const router = express();
-const { create } = require("./controllers");
+const { createCmsOrganizer, createCmsUsers } = require("./controllers");
 
-router.post("/organizers", create);
+const { authenticatedUser } = require("../../../middlewares/auth");
+
+router.post("/organizers", createCmsOrganizer);
+router.post("/users", authenticatedUser, createCmsUsers);
 
 module.exports = router;
