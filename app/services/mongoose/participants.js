@@ -47,28 +47,29 @@ const signupParticipant = async (req) => {
   return result;
 };
 
-// const activateParticipant = async (req) => {
-//   const { otp, email } = req.body;
-//   const check = await Participant.findOne({
-//     email,
-//   });
+const activateParticipant = async (req) => {
+  const { otp, email } = req.body;
+  const check = await Participant.findOne({
+    email,
+  });
 
-//   if (!check) throw new NotFoundError("Partisipan belum terdaftar");
+  if (!check) throw new NotFoundError("Partisipan belum terdaftar");
 
-//   if (check && check.otp !== otp) throw new BadRequestError("Kode otp salah");
+  if (check && check.otp !== otp) throw new BadRequestError("Kode otp salah");
 
-//   const result = await Participant.findByIdAndUpdate(
-//     check._id,
-//     {
-//       status: "aktif",
-//     },
-//     { new: true }
-//   );
+  const result = await Participant.findByIdAndUpdate(
+    check._id,
+    {
+      status: "aktif",
+    },
+    { new: true }
+  );
 
-//   delete result._doc.password;
+  delete result._doc.password;
+  delete result._doc.otp;
 
-//   return result;
-// };
+  return result;
+};
 
 // const signinParticipant = async (req) => {
 //   const { email, password } = req.body;
@@ -204,7 +205,7 @@ const signupParticipant = async (req) => {
 
 module.exports = {
   signupParticipant,
-  // activateParticipant,
+  activateParticipant,
   // signinParticipant,
   // getAllEvents,
   // getOneEvent,
