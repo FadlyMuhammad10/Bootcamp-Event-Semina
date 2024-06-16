@@ -1,16 +1,17 @@
 const Participant = require("../../api/v1/participants/model");
 const Events = require("../../api/v1/events/model");
 const Orders = require("../../api/v1/orders/model");
-// const Payments = require("../../api/v1/payments/model");
+const Payments = require("../../api/v1/payments/model");
 
 const {
   BadRequestError,
   NotFoundError,
   UnauthorizedError,
 } = require("../../errors");
-const { createTokenParticipant, createJWT } = require("../../utils");
 
-const { otpMail } = require("../mail");
+const { createTokenParticipant, createJwt } = require("../../utils");
+
+const { otpMail, orderMail } = require("../mail");
 
 const signupParticipant = async (req) => {
   const { firstName, lastName, email, password, role } = req.body;
@@ -71,145 +72,156 @@ const activateParticipant = async (req) => {
   return result;
 };
 
-// const signinParticipant = async (req) => {
-//   const { email, password } = req.body;
+const signinParticipant = async (req) => {
+  const { email, password } = req.body;
 
-//   if (!email || !password) {
-//     throw new BadRequestError("Please provide email and password");
-//   }
+  if (!email || !password) {
+    throw new BadRequestError("Please provide email and password");
+  }
 
-//   const result = await Participant.findOne({ email: email });
+  const result = await Participant.findOne({ email: email });
 
-//   if (!result) {
-//     throw new UnauthorizedError("Invalid Credentials");
-//   }
+  if (!result) {
+    throw new UnauthorizedError("Invalid Credentials");
+  }
 
-//   if (result.status === "tidak aktif") {
-//     throw new UnauthorizedError("Akun anda belum aktif");
-//   }
+  if (result.status === "tidak aktif") {
+    throw new UnauthorizedError("Akun anda belum aktif");
+  }
 
-//   const isPasswordCorrect = await result.comparePassword(password);
+  const isPasswordCorrect = await result.comparePassword(password);
 
-//   if (!isPasswordCorrect) {
-//     throw new UnauthorizedError("Invalid Credentials");
-//   }
+  if (!isPasswordCorrect) {
+    throw new UnauthorizedError("Invalid Credentials");
+  }
 
-//   const token = createJWT({ payload: createTokenParticipant(result) });
+  const token = createJwt({ payload: createTokenParticipant(result) });
 
-//   return token;
-// };
+  return token;
+};
 
-// const getAllEvents = async (req) => {
-//   const result = await Events.find({ statusEvent: "Published" })
-//     .populate("category")
-//     .populate("image")
-//     .select("_id title date tickets venueName");
+const getAllEvents = async (req) => {
+  const result = await Events.find({ statusEvent: "Published" })
+    .populate("category")
+    .populate("image")
+    .select("_id title date tickets venueName");
 
-//   return result;
-// };
+  return result;
+};
 
-// const getOneEvent = async (req) => {
-//   const { id } = req.params;
-//   const result = await Events.findOne({ _id: id })
-//     .populate("category")
-//     .populate({ path: "talent", populate: "image" })
-//     .populate("image");
+const getOneEvent = async (req) => {
+  const { id } = req.params;
+  const result = await Events.findOne({ _id: id })
+    .populate("category")
+    .populate({ path: "talent", populate: "image" })
+    .populate("image");
 
-//   if (!result) throw new NotFoundError(`Tidak ada acara dengan id :  ${id}`);
+  if (!result) throw new NotFoundError(`Tidak ada acara dengan id :  ${id}`);
 
-//   return result;
-// };
+  return result;
+};
 
-// const getAllOrders = async (req) => {
-//   console.log(req.participant);
-//   const result = await Orders.find({ participant: req.participant.id });
-//   return result;
-// };
+const getAllOrders = async (req) => {
+  console.log(req.participant);
+  const result = await Orders.find({ participant: req.participant.id });
+  return result;
+};
 
-// /**
-//  * Tugas Send email invoice
-//  * TODO: Ambil data email dari personal detail
-//  *  */
-// const checkoutOrder = async (req) => {
-//   const { event, personalDetail, payment, tickets } = req.body;
+/**
+ * Tugas Send email invoice
+ * TODO: Ambil data email dari personal detail
+ *  */
 
-//   const checkingEvent = await Events.findOne({ _id: event });
-//   if (!checkingEvent) {
-//     throw new NotFoundError("Tidak ada acara dengan id : " + event);
-//   }
+const checkoutOrder = async (req) => {
+  const { event, personalDetail, payment, tickets } = req.body;
 
-//   const checkingPayment = await Payments.findOne({ _id: payment });
+  const checkingEvent = await Events.findOne({ _id: event });
+  if (!checkingEvent) {
+    throw new NotFoundError("Tidak ada acara dengan id : " + event);
+  }
 
-//   if (!checkingPayment) {
-//     throw new NotFoundError(
-//       "Tidak ada metode pembayaran dengan id :" + payment
-//     );
-//   }
+  const checkingPayment = await Payments.findOne({ _id: payment });
 
-//   let totalPay = 0,
-//     totalOrderTicket = 0;
-//   await tickets.forEach((tic) => {
-//     checkingEvent.tickets.forEach((ticket) => {
-//       if (tic.ticketCategories.type === ticket.type) {
-//         if (tic.sumTicket > ticket.stock) {
-//           throw new NotFoundError("Stock event tidak mencukupi");
-//         } else {
-//           ticket.stock -= tic.sumTicket;
+  if (!checkingPayment) {
+    throw new NotFoundError(
+      "Tidak ada metode pembayaran dengan id :" + payment
+    );
+  }
 
-//           totalOrderTicket += tic.sumTicket;
-//           totalPay += tic.ticketCategories.price * tic.sumTicket;
-//         }
-//       }
-//     });
-//   });
+  let totalPay = 0,
+    totalOrderTicket = 0;
+  await tickets.forEach((tic) => {
+    checkingEvent.tickets.forEach((ticket) => {
+      if (tic.ticketCategories.type === ticket.type) {
+        if (tic.sumTicket > ticket.stock) {
+          throw new NotFoundError("Stock event tidak mencukupi");
+        } else {
+          ticket.stock -= tic.sumTicket;
 
-//   await checkingEvent.save();
+          totalOrderTicket += tic.sumTicket;
+          totalPay += tic.ticketCategories.price * tic.sumTicket;
+        }
+      }
+    });
+  });
 
-//   const historyEvent = {
-//     title: checkingEvent.title,
-//     date: checkingEvent.date,
-//     about: checkingEvent.about,
-//     tagline: checkingEvent.tagline,
-//     keyPoint: checkingEvent.keyPoint,
-//     venueName: checkingEvent.venueName,
-//     tickets: tickets,
-//     image: checkingEvent.image,
-//     category: checkingEvent.category,
-//     talent: checkingEvent.talent,
-//     organizer: checkingEvent.organizer,
-//   };
+  await checkingEvent.save();
 
-//   const result = new Orders({
-//     date: new Date(),
-//     personalDetail: personalDetail,
-//     totalPay,
-//     totalOrderTicket,
-//     orderItems: tickets,
-//     participant: req.participant.id,
-//     event,
-//     historyEvent,
-//     payment,
-//   });
+  const historyEvent = {
+    title: checkingEvent.title,
+    date: checkingEvent.date,
+    about: checkingEvent.about,
+    tagline: checkingEvent.tagline,
+    keyPoint: checkingEvent.keyPoint,
+    venueName: checkingEvent.venueName,
+    tickets: tickets,
+    image: checkingEvent.image,
+    category: checkingEvent.category,
+    talent: checkingEvent.talent,
+    organizer: checkingEvent.organizer,
+  };
 
-//   await result.save();
-//   return result;
-// };
+  const result = new Orders({
+    date: new Date(),
+    personalDetail: personalDetail,
+    totalPay,
+    totalOrderTicket,
+    orderItems: tickets,
+    participant: req.participant.id,
+    event,
+    historyEvent,
+    payment,
+  });
 
-// const getAllPaymentByOrganizer = async (req) => {
-//   const { organizer } = req.params;
+  await result.save();
+  // Send invoice email
+  try {
+    await orderMail(personalDetail.email, {
+      ...result._doc,
+      payment: checkingPayment.type,
+    });
+    console.log("Invoice email sent successfully.");
+  } catch (error) {
+    console.log("Failed to send invoice email:", error);
+  }
+  return result;
+};
 
-//   const result = await Payments.find({ organizer: organizer });
+const getAllPaymentByOrganizer = async (req) => {
+  const { organizer } = req.params;
 
-//   return result;
-// };
+  const result = await Payments.find({ organizer: organizer });
+
+  return result;
+};
 
 module.exports = {
   signupParticipant,
   activateParticipant,
-  // signinParticipant,
-  // getAllEvents,
-  // getOneEvent,
-  // getAllOrders,
-  // checkoutOrder,
-  // getAllPaymentByOrganizer,
+  signinParticipant,
+  getAllEvents,
+  getOneEvent,
+  getAllOrders,
+  checkoutOrder,
+  getAllPaymentByOrganizer,
 };
