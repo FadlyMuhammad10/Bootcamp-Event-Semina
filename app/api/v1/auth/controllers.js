@@ -7,7 +7,7 @@ module.exports = {
     try {
       const result = await signIn(req);
       res.status(StatusCodes.CREATED).json({
-        data: { token: result },
+        data: { token: result.token, role: result.role },
       });
     } catch (error) {
       next(error);
