@@ -3,8 +3,11 @@ const path = require("path");
 const cookieParser = require("cookie-parser");
 const logger = require("morgan");
 var cors = require("cors");
+const dotenv = require("dotenv");
 
 const app = express();
+
+dotenv.config();
 
 // initial middlewares
 const notFoundMiddleware = require("./app/middlewares/not-found");

@@ -7,6 +7,9 @@
 var app = require("../app");
 var debug = require("debug")("semina-bootcamp:server");
 var http = require("http");
+const dotenv = require("dotenv");
+
+dotenv.config();
 
 // import package db
 const db = require("../app/db");
